@@ -14,8 +14,16 @@ def get_school_by_id(db: Session, school_id: int) -> School | None:
     return db.query(School).filter(School.id == school_id).first()
 
 
-def get_schools(db: Session, skip: int = 0, limit: int = 100) -> list[School]:
-    return db.query(School).offset(skip).limit(limit).all()
+def get_schools(db: Session, offset: int = 0, limit: int = 100) -> list[School]:
+    return db.query(School).offset(offset).limit(limit).all()
+
+
+def get_schools_with_count(
+    db: Session, offset: int = 0, limit: int = 100
+) -> tuple[list[School], int]:
+    total = db.query(School).count()
+    items = db.query(School).offset(offset).limit(limit).all()
+    return items, total
 
 
 def update_school(db: Session, school: School, school_data: SchoolUpdate) -> School:

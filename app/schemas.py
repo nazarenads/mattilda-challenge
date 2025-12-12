@@ -5,10 +5,21 @@ Define your Pydantic models/schemas here for request/response validation.
 """
 
 from datetime import datetime
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+T = TypeVar("T")
 
-# School Schemas
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
+    pages: int
+
+
 class SchoolCreate(BaseModel):
     name: str
     country: str
@@ -32,7 +43,6 @@ class SchoolResponse(BaseModel):
     updated_at: datetime
 
 
-# Student Schemas
 class StudentCreate(BaseModel):
     name: str
     email: EmailStr
@@ -56,7 +66,6 @@ class StudentResponse(BaseModel):
     updated_at: datetime
 
 
-# Invoice Schemas
 class InvoiceCreate(BaseModel):
     invoice_number: str
     amount: float

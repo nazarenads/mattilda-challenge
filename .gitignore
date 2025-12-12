@@ -1,0 +1,10 @@
+**/__pycache__
+.python-version
+.vscode/
+.fleet/
+
+.venv
+.idea
+app/.DS_Store
+
+.env.dev
