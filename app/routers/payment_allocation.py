@@ -94,7 +94,7 @@ def update_allocation(
 
     updated_allocation = allocation_service.update_allocation(db, allocation, allocation_data)
 
-    invoice = invoice_service.get_invoice_by_id(db, allocation.invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, allocation.invoice_id, current_user)
     if invoice:
         allocation_service.update_invoice_status_from_payments(db, invoice)
 
@@ -115,6 +115,6 @@ def delete_allocation(
     invoice_id = allocation.invoice_id
     allocation_service.delete_allocation(db, allocation)
 
-    invoice = invoice_service.get_invoice_by_id(db, invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, invoice_id, current_user)
     if invoice:
         allocation_service.update_invoice_status_from_payments(db, invoice)

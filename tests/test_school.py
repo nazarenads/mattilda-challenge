@@ -47,6 +47,13 @@ class TestSchoolList:
         assert len(data_page2["items"]) == 2
         assert data_page2["offset"] == 2
 
+    def test_list_schools_as_non_admin_forbidden(self, client, school_user_headers):
+        """Non-admin users cannot list all schools."""
+        response = client.get("/school/", headers=school_user_headers)
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Admin access required"
+
 
 class TestSchoolCreate:
     def test_create_school(self, client, db_helpers, admin_headers):

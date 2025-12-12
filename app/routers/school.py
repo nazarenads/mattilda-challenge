@@ -18,15 +18,10 @@ def list_schools(
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
-    """Returns a paginated list of schools."""
-    if current_user.is_admin:
-        items, total = school_service.get_schools_with_count(db, offset=offset, limit=limit)
-    else:
-        school = school_service.get_school_by_id(db, current_user.school_id)
-        items = [school] if school else []
-        total = 1 if school else 0
+    """Returns a paginated list of schools (admin only)."""
+    items, total = school_service.get_schools_with_count(db, offset=offset, limit=limit)
     pages = (total + limit - 1) // limit if limit > 0 else 0
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset, pages=pages)
 
