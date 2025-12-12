@@ -56,6 +56,29 @@ boilerplate/
 
 - `GET /health` - Health check endpoint
 - `GET /docs` - Swagger UI documentation
+- **Schools:** `GET/POST /school/`, `GET/PUT/DELETE /school/{id}`, `GET /school/{id}/balance`
+- **Students:** `GET/POST /student/`, `GET/PUT/DELETE /student/{id}`, `GET /student/{id}/balance`
+- **Invoices:** `GET/POST /invoice/`, `GET/PUT/DELETE /invoice/{id}`
+- **Payments:** `GET/POST /payment/`, `GET/PUT/DELETE /payment/{id}`
+- **Payment Allocations:** `GET/POST /payment-allocation/`, `GET/PUT/DELETE /payment-allocation/{id}`
+
+## Seed Data
+
+Populate the database with sample data for testing:
+
+```bash
+docker compose run --rm app python -m scripts.seed_data
+```
+
+This creates:
+- 5 schools (Mexico and Colombia)
+- ~50 students with random names
+- ~120 invoices with various statuses (draft, pending, paid, partially_paid, overdue)
+- ~40 payments (cash, card, bank_transfer)
+- ~30 payment allocations
+- Currencies: MXN (Mexican Peso) and COP (Colombian Peso)
+
+**Note:** Running this command will clear existing data before seeding.
 
 ## Database Migrations
 
@@ -75,9 +98,29 @@ Rollback last migration:
 docker compose exec app alembic downgrade -1
 ```
 
+## Running Tests
+
+Run all tests inside the container:
+
+```bash
+docker compose run --rm app pytest
+```
+
+Run tests with coverage report:
+
+```bash
+docker compose run --rm app pytest --cov=app --cov-report=term-missing
+```
+
+Run tests in verbose mode:
+
+```bash
+docker compose run --rm app pytest -v
+```
+
 ## Configuration
 
-Configuration is managed through environment variables in `docker-compose.yml`.
+Configuration is managed through environment variables. Copy `.env.example` to `.env` and adjust as needed.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
