@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
-from app.schemas import SchoolCreate, SchoolUpdate, SchoolResponse, PaginatedResponse
+from app.schemas import SchoolCreate, SchoolUpdate, SchoolResponse, PaginatedResponse, BalanceResponse
 from app.services import school as school_service
 from app.db.models import School
 
@@ -28,6 +28,15 @@ def get_school(school_id: int, db: Session = Depends(get_db)):
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
     return school
+
+
+@router.get("/{school_id}/balance", response_model=BalanceResponse)
+def get_school_balance(school_id: int, db: Session = Depends(get_db)):
+    """Returns the balance summary for a school."""
+    school = school_service.get_school_by_id(db, school_id)
+    if school is None:
+        raise HTTPException(status_code=404, detail="School not found")
+    return school_service.get_school_balance(db, school_id)
 
 
 @router.post("/", response_model=SchoolResponse, status_code=201)

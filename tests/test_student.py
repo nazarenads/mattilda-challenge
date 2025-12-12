@@ -142,3 +142,77 @@ def test_delete_student_not_found(client):
     response = client.delete("/student/999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Student not found"
+
+
+def test_get_student_balance_empty(client, school):
+    """Test balance for student with no invoices or payments."""
+    student_data = {"identifier": "ID-001", "name": "Test", "email": "test@example.com", "school_id": school["id"]}
+    create_response = client.post("/student/", json=student_data)
+    student_id = create_response.json()["id"]
+
+    response = client.get(f"/student/{student_id}/balance")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_invoiced_cents"] == 0
+    assert data["total_paid_cents"] == 0
+    assert data["total_pending_cents"] == 0
+    assert data["currency"] is None
+    assert data["invoices"] == []
+    assert data["payments"] == []
+
+
+def test_get_student_balance_with_data(client, school):
+    """Test balance with invoices and payments."""
+    student_data = {"identifier": "ID-001", "name": "Test", "email": "test@example.com", "school_id": school["id"]}
+    student_response = client.post("/student/", json=student_data)
+    student_id = student_response.json()["id"]
+
+    client.post("/invoice/", json={
+        "invoice_number": "INV-001",
+        "amount_in_cents": 10000,
+        "currency": "USD",
+        "status": "pending",
+        "issue_date": "2024-01-01T00:00:00",
+        "due_date": "2024-02-01T00:00:00",
+        "student_id": student_id
+    })
+    invoice_response = client.post("/invoice/", json={
+        "invoice_number": "INV-002",
+        "amount_in_cents": 5000,
+        "currency": "USD",
+        "status": "overdue",
+        "issue_date": "2024-01-01T00:00:00",
+        "due_date": "2024-01-15T00:00:00",
+        "student_id": student_id
+    })
+    invoice_id = invoice_response.json()["id"]
+
+    payment_response = client.post("/payment/", json={
+        "amount_in_cents": 3000,
+        "status": "completed",
+        "payment_method": "card",
+        "student_id": student_id
+    })
+    payment_id = payment_response.json()["id"]
+
+    client.post("/payment-allocation/", json={
+        "payment_id": payment_id,
+        "invoice_id": invoice_id,
+        "amount_in_cents": 3000
+    })
+
+    response = client.get(f"/student/{student_id}/balance")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_invoiced_cents"] == 15000
+    assert data["total_paid_cents"] == 3000
+    assert data["total_pending_cents"] == 12000
+    assert data["currency"] == "USD"
+    assert len(data["invoices"]) == 2
+    assert len(data["payments"]) == 1
+
+
+def test_get_student_balance_not_found(client):
+    response = client.get("/student/999/balance")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Student not found"

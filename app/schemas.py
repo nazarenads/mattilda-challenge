@@ -173,3 +173,12 @@ class PaymentAllocationResponse(BaseModel):
     invoice_id: int
     amount_in_cents: int
     created_at: datetime
+
+
+class BalanceResponse(BaseModel):
+    total_invoiced_cents: int
+    total_paid_cents: int
+    total_pending_cents: int
+    currency: str | None
+    invoices: list[InvoiceResponse]
+    payments: list[PaymentResponse]
