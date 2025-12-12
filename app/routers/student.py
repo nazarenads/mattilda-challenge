@@ -4,14 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.schemas import StudentCreate, StudentUpdate, StudentResponse, PaginatedResponse
-from app.services.student import (
-    get_student_by_id,
-    get_students_with_count,
-    create_student,
-    update_student,
-    delete_student,
-)
-from app.services.school import get_school_by_id
+from app.services import student as student_service
+from app.services import school as school_service
 from app.db.models import Student
 
 router = APIRouter(
@@ -23,7 +17,7 @@ router = APIRouter(
 @router.get("/", response_model=PaginatedResponse[StudentResponse])
 def list_students(limit: int = 100, offset: int = 0, db: Session = Depends(get_db)):
     """Returns a paginated list of students."""
-    items, total = get_students_with_count(db, offset=offset, limit=limit)
+    items, total = student_service.get_students_with_count(db, offset=offset, limit=limit)
     pages = (total + limit - 1) // limit if limit > 0 else 0
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset, pages=pages)
 
@@ -31,7 +25,7 @@ def list_students(limit: int = 100, offset: int = 0, db: Session = Depends(get_d
 @router.get("/{student_id}", response_model=StudentResponse)
 def get_student(student_id: int, db: Session = Depends(get_db)):
     """Returns the student details."""
-    student = get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id(db, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
@@ -40,7 +34,7 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=StudentResponse, status_code=201)
 def post_student(student_data: StudentCreate, db: Session = Depends(get_db)):
     """Creates a new student."""
-    school = get_school_by_id(db, student_data.school_id)
+    school = school_service.get_school_by_id(db, student_data.school_id)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
 
@@ -52,7 +46,7 @@ def post_student(student_data: StudentCreate, db: Session = Depends(get_db)):
         created_at=now,
         updated_at=now,
     )
-    return create_student(db, student)
+    return student_service.create_student(db, student)
 
 
 @router.put("/{student_id}", response_model=StudentResponse)
@@ -60,23 +54,23 @@ def put_student(
     student_id: int, student_data: StudentUpdate, db: Session = Depends(get_db)
 ):
     """Updates an existing student."""
-    student = get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id(db, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
 
     if student_data.school_id is not None:
-        school = get_school_by_id(db, student_data.school_id)
+        school = school_service.get_school_by_id(db, student_data.school_id)
         if school is None:
             raise HTTPException(status_code=404, detail="School not found")
 
     student.updated_at = datetime.now()
-    return update_student(db, student, student_data)
+    return student_service.update_student(db, student, student_data)
 
 
 @router.delete("/{student_id}", status_code=204)
 def delete_student(student_id: int, db: Session = Depends(get_db)):
     """Deletes a student."""
-    student = get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id(db, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    delete_student(db, student)
+    student_service.delete_student(db, student)
