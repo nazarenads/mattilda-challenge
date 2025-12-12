@@ -31,7 +31,7 @@ def get_school(school_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=SchoolResponse, status_code=201)
-def post_school(school_data: SchoolCreate, db: Session = Depends(get_db)):
+def create_school(school_data: SchoolCreate, db: Session = Depends(get_db)):
     """Creates a new school."""
     now = datetime.now()
     school = School(
@@ -45,7 +45,7 @@ def post_school(school_data: SchoolCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{school_id}", response_model=SchoolResponse)
-def put_school(
+def update_school(
     school_id: int, school_data: SchoolUpdate, db: Session = Depends(get_db)
 ):
     """Updates an existing school."""

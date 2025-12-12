@@ -32,7 +32,7 @@ def get_invoice(invoice_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=InvoiceResponse, status_code=201)
-def post_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
+def create_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
     """Creates a new invoice."""
     student = student_service.get_student_by_id(db, invoice_data.student_id)
     if student is None:
@@ -41,7 +41,8 @@ def post_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
     now = datetime.now()
     invoice = Invoice(
         invoice_number=invoice_data.invoice_number,
-        amount=invoice_data.amount,
+        amount_in_cents=invoice_data.amount_in_cents,
+        currency=invoice_data.currency,
         status=invoice_data.status,
         issue_date=invoice_data.issue_date,
         due_date=invoice_data.due_date,
@@ -54,7 +55,7 @@ def post_invoice(invoice_data: InvoiceCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
-def put_invoice(
+def update_invoice(
     invoice_id: int, invoice_data: InvoiceUpdate, db: Session = Depends(get_db)
 ):
     """Updates an existing invoice."""

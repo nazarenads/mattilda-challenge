@@ -30,6 +30,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_school_id'), 'school', ['id'], unique=False)
     op.create_table('student',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('identifier', sa.String(length=100), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('school_id', sa.Integer(), nullable=False),
@@ -37,13 +38,15 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['school_id'], ['school.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email')
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('identifier')
     )
     op.create_index(op.f('ix_student_id'), 'student', ['id'], unique=False)
     op.create_table('invoice',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('invoice_number', sa.String(length=50), nullable=False),
-    sa.Column('amount', sa.Float(), nullable=False),
+    sa.Column('amount_in_cents', sa.Integer(), nullable=False),
+    sa.Column('currency', sa.String(length=3), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('issue_date', sa.DateTime(), nullable=False),
     sa.Column('due_date', sa.DateTime(), nullable=False),

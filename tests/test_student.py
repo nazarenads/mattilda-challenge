@@ -24,6 +24,7 @@ def test_list_students_empty(client):
 
 def test_create_student(client, school):
     student_data = {
+        "identifier": "ID-001",
         "name": "John Doe",
         "email": "john@example.com",
         "school_id": school["id"]
@@ -31,6 +32,7 @@ def test_create_student(client, school):
     response = client.post("/student/", json=student_data)
     assert response.status_code == 201
     data = response.json()
+    assert data["identifier"] == "ID-001"
     assert data["name"] == "John Doe"
     assert data["email"] == "john@example.com"
     assert data["school_id"] == school["id"]
@@ -41,6 +43,7 @@ def test_create_student(client, school):
 
 def test_create_student_school_not_found(client):
     student_data = {
+        "identifier": "ID-001",
         "name": "John Doe",
         "email": "john@example.com",
         "school_id": 999
@@ -51,7 +54,7 @@ def test_create_student_school_not_found(client):
 
 
 def test_get_student(client, school):
-    student_data = {"name": "John Doe", "email": "john@example.com", "school_id": school["id"]}
+    student_data = {"identifier": "ID-001", "name": "John Doe", "email": "john@example.com", "school_id": school["id"]}
     create_response = client.post("/student/", json=student_data)
     student_id = create_response.json()["id"]
 
@@ -69,8 +72,8 @@ def test_get_student_not_found(client):
 
 
 def test_list_students_with_data(client, school):
-    client.post("/student/", json={"name": "Student 1", "email": "s1@example.com", "school_id": school["id"]})
-    client.post("/student/", json={"name": "Student 2", "email": "s2@example.com", "school_id": school["id"]})
+    client.post("/student/", json={"identifier": "ID-001", "name": "Student 1", "email": "s1@example.com", "school_id": school["id"]})
+    client.post("/student/", json={"identifier": "ID-002", "name": "Student 2", "email": "s2@example.com", "school_id": school["id"]})
 
     response = client.get("/student/")
     assert response.status_code == 200
@@ -82,7 +85,7 @@ def test_list_students_with_data(client, school):
 
 def test_list_students_pagination(client, school):
     for i in range(5):
-        client.post("/student/", json={"name": f"Student {i}", "email": f"s{i}@example.com", "school_id": school["id"]})
+        client.post("/student/", json={"identifier": f"ID-{i}", "name": f"Student {i}", "email": f"s{i}@example.com", "school_id": school["id"]})
 
     response = client.get("/student/?limit=2&offset=0")
     assert response.status_code == 200
@@ -95,7 +98,7 @@ def test_list_students_pagination(client, school):
 
 
 def test_update_student(client, school):
-    student_data = {"name": "Original Name", "email": "original@example.com", "school_id": school["id"]}
+    student_data = {"identifier": "ID-001", "name": "Original Name", "email": "original@example.com", "school_id": school["id"]}
     create_response = client.post("/student/", json=student_data)
     student_id = create_response.json()["id"]
 
@@ -114,7 +117,7 @@ def test_update_student_not_found(client):
 
 
 def test_update_student_school_not_found(client, school):
-    student_data = {"name": "Test", "email": "test@example.com", "school_id": school["id"]}
+    student_data = {"identifier": "ID-001", "name": "Test", "email": "test@example.com", "school_id": school["id"]}
     create_response = client.post("/student/", json=student_data)
     student_id = create_response.json()["id"]
 
@@ -124,7 +127,7 @@ def test_update_student_school_not_found(client, school):
 
 
 def test_delete_student(client, school):
-    student_data = {"name": "To Delete", "email": "delete@example.com", "school_id": school["id"]}
+    student_data = {"identifier": "ID-001", "name": "To Delete", "email": "delete@example.com", "school_id": school["id"]}
     create_response = client.post("/student/", json=student_data)
     student_id = create_response.json()["id"]
 

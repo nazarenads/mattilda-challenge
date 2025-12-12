@@ -32,7 +32,7 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=StudentResponse, status_code=201)
-def post_student(student_data: StudentCreate, db: Session = Depends(get_db)):
+def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
     """Creates a new student."""
     school = school_service.get_school_by_id(db, student_data.school_id)
     if school is None:
@@ -40,6 +40,7 @@ def post_student(student_data: StudentCreate, db: Session = Depends(get_db)):
 
     now = datetime.now()
     student = Student(
+        identifier=student_data.identifier,
         name=student_data.name,
         email=student_data.email,
         school_id=student_data.school_id,
@@ -50,7 +51,7 @@ def post_student(student_data: StudentCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{student_id}", response_model=StudentResponse)
-def put_student(
+def update_student(
     student_id: int, student_data: StudentUpdate, db: Session = Depends(get_db)
 ):
     """Updates an existing student."""

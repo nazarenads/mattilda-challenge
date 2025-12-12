@@ -44,12 +44,14 @@ class SchoolResponse(BaseModel):
 
 
 class StudentCreate(BaseModel):
+    identifier: str
     name: str
     email: EmailStr
     school_id: int
 
 
 class StudentUpdate(BaseModel):
+    identifier: str | None = None
     name: str | None = None
     email: EmailStr | None = None
     school_id: int | None = None
@@ -59,6 +61,7 @@ class StudentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    identifier: str
     name: str
     email: str
     school_id: int
@@ -68,7 +71,8 @@ class StudentResponse(BaseModel):
 
 class InvoiceCreate(BaseModel):
     invoice_number: str
-    amount: float
+    amount_in_cents: int
+    currency: str
     status: str = "pending"
     issue_date: datetime
     due_date: datetime
@@ -78,7 +82,8 @@ class InvoiceCreate(BaseModel):
 
 class InvoiceUpdate(BaseModel):
     invoice_number: str | None = None
-    amount: float | None = None
+    amount_in_cents: int | None = None
+    currency: str | None = None
     status: str | None = None
     issue_date: datetime | None = None
     due_date: datetime | None = None
@@ -91,7 +96,8 @@ class InvoiceResponse(BaseModel):
 
     id: int
     invoice_number: str
-    amount: float
+    amount_in_cents: int
+    currency: str
     status: str
     issue_date: datetime
     due_date: datetime
