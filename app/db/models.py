@@ -17,6 +17,18 @@ class InvoiceStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class PaymentMethod(str, Enum):
+    CASH = "cash"
+    CARD = "card"
+    BANK_TRANSFER = "bank_transfer"
+
+
 class School(Base):
     __tablename__ = "school"
 
@@ -43,6 +55,7 @@ class Student(Base):
 
     school: Mapped[School] = relationship(back_populates="students")
     invoices: Mapped[list[Invoice]] = relationship(back_populates="student")
+    payments: Mapped[list[Payment]] = relationship(back_populates="student")
 
 
 class Invoice(Base):
@@ -61,3 +74,32 @@ class Invoice(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     student: Mapped[Student] = relationship(back_populates="invoices")
+    allocations: Mapped[list[PaymentAllocation]] = relationship(back_populates="invoice")
+
+
+class Payment(Base):
+    __tablename__ = "payment"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    amount_in_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default=PaymentStatus.PENDING.value)
+    payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
+    student_id: Mapped[int] = mapped_column(ForeignKey("student.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    student: Mapped[Student] = relationship(back_populates="payments")
+    allocations: Mapped[list[PaymentAllocation]] = relationship(back_populates="payment")
+
+
+class PaymentAllocation(Base):
+    __tablename__ = "payment_allocation"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    payment_id: Mapped[int] = mapped_column(ForeignKey("payment.id"), nullable=False)
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("invoice.id"), nullable=False)
+    amount_in_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    payment: Mapped[Payment] = relationship(back_populates="allocations")
+    invoice: Mapped[Invoice] = relationship(back_populates="allocations")

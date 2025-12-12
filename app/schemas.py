@@ -19,6 +19,18 @@ class InvoiceStatus(str, Enum):
     OVERDUE = "overdue"
     CANCELLED = "cancelled"
 
+
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class PaymentMethod(str, Enum):
+    CASH = "cash"
+    CARD = "card"
+    BANK_TRANSFER = "bank_transfer"
+
 T = TypeVar("T")
 
 
@@ -115,3 +127,49 @@ class InvoiceResponse(BaseModel):
     student_id: int
     created_at: datetime
     updated_at: datetime
+
+
+class PaymentCreate(BaseModel):
+    amount_in_cents: int
+    status: PaymentStatus = PaymentStatus.PENDING
+    payment_method: PaymentMethod
+    student_id: int
+
+
+class PaymentUpdate(BaseModel):
+    amount_in_cents: int | None = None
+    status: PaymentStatus | None = None
+    payment_method: PaymentMethod | None = None
+    student_id: int | None = None
+
+
+class PaymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    amount_in_cents: int
+    status: PaymentStatus
+    payment_method: PaymentMethod
+    student_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class PaymentAllocationCreate(BaseModel):
+    payment_id: int
+    invoice_id: int
+    amount_in_cents: int
+
+
+class PaymentAllocationUpdate(BaseModel):
+    amount_in_cents: int | None = None
+
+
+class PaymentAllocationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    payment_id: int
+    invoice_id: int
+    amount_in_cents: int
+    created_at: datetime
