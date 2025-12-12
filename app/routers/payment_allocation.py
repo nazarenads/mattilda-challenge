@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.models import PaymentAllocation, User
-from app.dependencies import get_db, get_current_active_user, check_school_access
+from app.dependencies import get_db, get_current_active_user
 from app.schemas import (
     PaymentAllocationCreate,
     PaymentAllocationUpdate,
@@ -45,10 +45,9 @@ def get_allocation(
     current_user: User = Depends(get_current_active_user),
 ):
     """Returns the payment allocation details."""
-    allocation = allocation_service.get_allocation_by_id(db, allocation_id)
+    allocation = allocation_service.get_allocation_by_id_for_user(db, allocation_id, current_user)
     if allocation is None:
         raise HTTPException(status_code=404, detail="Payment allocation not found")
-    check_school_access(current_user, allocation.invoice.student.school_id)
     return allocation
 
 
@@ -59,15 +58,13 @@ def create_allocation(
     current_user: User = Depends(get_current_active_user),
 ):
     """Creates a new payment allocation and updates invoice status."""
-    payment = payment_service.get_payment_by_id(db, allocation_data.payment_id)
+    payment = payment_service.get_payment_by_id_for_user(db, allocation_data.payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
-    check_school_access(current_user, payment.student.school_id)
 
-    invoice = invoice_service.get_invoice_by_id(db, allocation_data.invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, allocation_data.invoice_id, current_user)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    check_school_access(current_user, invoice.student.school_id)
 
     now = datetime.now()
     allocation = PaymentAllocation(
@@ -91,10 +88,9 @@ def update_allocation(
     current_user: User = Depends(get_current_active_user),
 ):
     """Updates an existing payment allocation and updates invoice status."""
-    allocation = allocation_service.get_allocation_by_id(db, allocation_id)
+    allocation = allocation_service.get_allocation_by_id_for_user(db, allocation_id, current_user)
     if allocation is None:
         raise HTTPException(status_code=404, detail="Payment allocation not found")
-    check_school_access(current_user, allocation.invoice.student.school_id)
 
     updated_allocation = allocation_service.update_allocation(db, allocation, allocation_data)
 
@@ -112,10 +108,9 @@ def delete_allocation(
     current_user: User = Depends(get_current_active_user),
 ):
     """Deletes a payment allocation and updates invoice status."""
-    allocation = allocation_service.get_allocation_by_id(db, allocation_id)
+    allocation = allocation_service.get_allocation_by_id_for_user(db, allocation_id, current_user)
     if allocation is None:
         raise HTTPException(status_code=404, detail="Payment allocation not found")
-    check_school_access(current_user, allocation.invoice.student.school_id)
 
     invoice_id = allocation.invoice_id
     allocation_service.delete_allocation(db, allocation)

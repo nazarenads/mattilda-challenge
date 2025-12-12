@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.models import Student, User
-from app.dependencies import get_db, get_current_active_user, check_school_access
+from app.dependencies import get_db, get_current_active_user
 from app.schemas import StudentCreate, StudentUpdate, StudentResponse, PaginatedResponse, BalanceResponse
 from app.services import student as student_service
 from app.services import school as school_service
@@ -39,10 +39,9 @@ def get_student(
     current_user: User = Depends(get_current_active_user),
 ):
     """Returns the student details."""
-    student = student_service.get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id_for_user(db, student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
     return student
 
 
@@ -53,10 +52,9 @@ def get_student_balance(
     current_user: User = Depends(get_current_active_user),
 ):
     """Returns the balance summary for a student."""
-    student = student_service.get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id_for_user(db, student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
     return student_service.get_student_balance(db, student_id)
 
 
@@ -67,10 +65,9 @@ def create_student(
     current_user: User = Depends(get_current_active_user),
 ):
     """Creates a new student."""
-    school = school_service.get_school_by_id(db, student_data.school_id)
+    school = school_service.get_school_by_id_for_user(db, student_data.school_id, current_user)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
-    check_school_access(current_user, student_data.school_id)
 
     now = datetime.now()
     student = Student(
@@ -92,16 +89,14 @@ def update_student(
     current_user: User = Depends(get_current_active_user),
 ):
     """Updates an existing student."""
-    student = student_service.get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id_for_user(db, student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
 
     if student_data.school_id is not None:
-        school = school_service.get_school_by_id(db, student_data.school_id)
+        school = school_service.get_school_by_id_for_user(db, student_data.school_id, current_user)
         if school is None:
             raise HTTPException(status_code=404, detail="School not found")
-        check_school_access(current_user, student_data.school_id)
 
     student.updated_at = datetime.now()
     return student_service.update_student(db, student, student_data)
@@ -114,8 +109,7 @@ def delete_student(
     current_user: User = Depends(get_current_active_user),
 ):
     """Deletes a student."""
-    student = student_service.get_student_by_id(db, student_id)
+    student = student_service.get_student_by_id_for_user(db, student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
     student_service.delete_student(db, student)

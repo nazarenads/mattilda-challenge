@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.db.models import Student, Invoice, Payment, PaymentAllocation, PaymentStatus
+from app.db.models import Student, Invoice, Payment, PaymentAllocation, PaymentStatus, User
 from app.schemas import StudentUpdate, BalanceResponse, InvoiceResponse, PaymentResponse
 from app.constants import UNPAID_INVOICE_STATUSES
 
@@ -14,6 +14,14 @@ def create_student(db: Session, student: Student) -> Student:
 
 def get_student_by_id(db: Session, student_id: int) -> Student | None:
     return db.query(Student).filter(Student.id == student_id).first()
+
+
+def get_student_by_id_for_user(db: Session, student_id: int, user: User) -> Student | None:
+    """Get student by ID, filtered by user's school access."""
+    query = db.query(Student).filter(Student.id == student_id)
+    if not user.is_admin:
+        query = query.filter(Student.school_id == user.school_id)
+    return query.first()
 
 
 def get_students(db: Session, offset: int = 0, limit: int = 100) -> list[Student]:

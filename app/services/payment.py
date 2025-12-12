@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Payment, Student
+from app.db.models import Payment, Student, User
 from app.schemas import PaymentUpdate
 
 
@@ -12,6 +12,14 @@ def create_payment(db: Session, payment: Payment) -> Payment:
 
 def get_payment_by_id(db: Session, payment_id: int) -> Payment | None:
     return db.query(Payment).filter(Payment.id == payment_id).first()
+
+
+def get_payment_by_id_for_user(db: Session, payment_id: int, user: User) -> Payment | None:
+    """Get payment by ID, filtered by user's school access."""
+    query = db.query(Payment).filter(Payment.id == payment_id)
+    if not user.is_admin:
+        query = query.join(Student).filter(Student.school_id == user.school_id)
+    return query.first()
 
 
 def get_payments(db: Session, offset: int = 0, limit: int = 100) -> list[Payment]:

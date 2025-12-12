@@ -77,12 +77,16 @@ class TestSchoolUserAccess:
         assert response.json()["id"] == school.id
 
     def test_school_user_cannot_access_other_school(self, client, db_helpers, school_user_headers):
+        """
+        When a school user tries to access another school, they get 404 (not 403)
+        to prevent information leakage about which schools exist.
+        """
         other_school = db_helpers.create_school(name="Other School", tax_id="999")
 
         response = client.get(f"/school/{other_school.id}", headers=school_user_headers)
 
-        assert response.status_code == 403
-        assert response.json()["detail"] == "Access denied"
+        assert response.status_code == 404
+        assert response.json()["detail"] == "School not found"
 
     def test_admin_can_access_any_school(self, client, db_helpers, admin_headers):
         school1 = db_helpers.create_school(name="School 1", tax_id="111")

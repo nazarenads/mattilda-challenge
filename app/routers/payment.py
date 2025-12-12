@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.models import Payment, User
-from app.dependencies import get_db, get_current_active_user, check_school_access
+from app.dependencies import get_db, get_current_active_user
 from app.schemas import PaymentCreate, PaymentUpdate, PaymentResponse, PaginatedResponse
 from app.services import payment as payment_service
 from app.services import student as student_service
@@ -39,10 +39,9 @@ def get_payment(
     current_user: User = Depends(get_current_active_user),
 ):
     """Returns the payment details."""
-    payment = payment_service.get_payment_by_id(db, payment_id)
+    payment = payment_service.get_payment_by_id_for_user(db, payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
-    check_school_access(current_user, payment.student.school_id)
     return payment
 
 
@@ -53,10 +52,9 @@ def create_payment(
     current_user: User = Depends(get_current_active_user),
 ):
     """Creates a new payment."""
-    student = student_service.get_student_by_id(db, payment_data.student_id)
+    student = student_service.get_student_by_id_for_user(db, payment_data.student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
 
     now = datetime.now()
     payment = Payment(
@@ -78,16 +76,14 @@ def update_payment(
     current_user: User = Depends(get_current_active_user),
 ):
     """Updates an existing payment."""
-    payment = payment_service.get_payment_by_id(db, payment_id)
+    payment = payment_service.get_payment_by_id_for_user(db, payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
-    check_school_access(current_user, payment.student.school_id)
 
     if payment_data.student_id is not None:
-        student = student_service.get_student_by_id(db, payment_data.student_id)
+        student = student_service.get_student_by_id_for_user(db, payment_data.student_id, current_user)
         if student is None:
             raise HTTPException(status_code=404, detail="Student not found")
-        check_school_access(current_user, student.school_id)
 
     payment.updated_at = datetime.now()
     return payment_service.update_payment(db, payment, payment_data)
@@ -100,8 +96,7 @@ def delete_payment(
     current_user: User = Depends(get_current_active_user),
 ):
     """Deletes a payment."""
-    payment = payment_service.get_payment_by_id(db, payment_id)
+    payment = payment_service.get_payment_by_id_for_user(db, payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
-    check_school_access(current_user, payment.student.school_id)
     payment_service.delete_payment(db, payment)

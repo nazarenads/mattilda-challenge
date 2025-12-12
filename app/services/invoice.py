@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Invoice, Student
+from app.db.models import Invoice, Student, User
 from app.schemas import InvoiceUpdate
 
 
@@ -12,6 +12,14 @@ def create_invoice(db: Session, invoice: Invoice) -> Invoice:
 
 def get_invoice_by_id(db: Session, invoice_id: int) -> Invoice | None:
     return db.query(Invoice).filter(Invoice.id == invoice_id).first()
+
+
+def get_invoice_by_id_for_user(db: Session, invoice_id: int, user: User) -> Invoice | None:
+    """Get invoice by ID, filtered by user's school access."""
+    query = db.query(Invoice).filter(Invoice.id == invoice_id)
+    if not user.is_admin:
+        query = query.join(Student).filter(Student.school_id == user.school_id)
+    return query.first()
 
 
 def get_invoices(db: Session, offset: int = 0, limit: int = 100) -> list[Invoice]:

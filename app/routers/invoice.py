@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.models import Invoice, User
-from app.dependencies import get_db, get_current_active_user, check_school_access
+from app.dependencies import get_db, get_current_active_user
 from app.schemas import InvoiceCreate, InvoiceUpdate, InvoiceResponse, PaginatedResponse
 from app.services import invoice as invoice_service
 from app.services import student as student_service
@@ -39,10 +39,9 @@ def get_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     """Returns the invoice details."""
-    invoice = invoice_service.get_invoice_by_id(db, invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, invoice_id, current_user)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    check_school_access(current_user, invoice.student.school_id)
     return invoice
 
 
@@ -53,10 +52,9 @@ def create_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     """Creates a new invoice."""
-    student = student_service.get_student_by_id(db, invoice_data.student_id)
+    student = student_service.get_student_by_id_for_user(db, invoice_data.student_id, current_user)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    check_school_access(current_user, student.school_id)
 
     now = datetime.now()
     invoice = Invoice(
@@ -82,16 +80,14 @@ def update_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     """Updates an existing invoice."""
-    invoice = invoice_service.get_invoice_by_id(db, invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, invoice_id, current_user)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    check_school_access(current_user, invoice.student.school_id)
 
     if invoice_data.student_id is not None:
-        student = student_service.get_student_by_id(db, invoice_data.student_id)
+        student = student_service.get_student_by_id_for_user(db, invoice_data.student_id, current_user)
         if student is None:
             raise HTTPException(status_code=404, detail="Student not found")
-        check_school_access(current_user, student.school_id)
 
     invoice.updated_at = datetime.now()
     return invoice_service.update_invoice(db, invoice, invoice_data)
@@ -104,8 +100,7 @@ def delete_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     """Deletes an invoice."""
-    invoice = invoice_service.get_invoice_by_id(db, invoice_id)
+    invoice = invoice_service.get_invoice_by_id_for_user(db, invoice_id, current_user)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    check_school_access(current_user, invoice.student.school_id)
     invoice_service.delete_invoice(db, invoice)
