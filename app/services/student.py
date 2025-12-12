@@ -28,6 +28,15 @@ def get_students_with_count(
     return items, total
 
 
+def get_students_by_school_with_count(
+    db: Session, school_id: int, offset: int = 0, limit: int = 100
+) -> tuple[list[Student], int]:
+    query = db.query(Student).filter(Student.school_id == school_id)
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
+    return items, total
+
+
 def update_student(db: Session, student: Student, student_data: StudentUpdate) -> Student:
     update_data = student_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():

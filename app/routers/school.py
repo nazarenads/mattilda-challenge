@@ -2,10 +2,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db
+from app.db.models import School, User
+from app.dependencies import get_db, get_current_active_user, require_admin, check_school_access
 from app.schemas import SchoolCreate, SchoolUpdate, SchoolResponse, PaginatedResponse, BalanceResponse
 from app.services import school as school_service
-from app.db.models import School
 
 router = APIRouter(
     prefix="/school",
@@ -14,34 +14,58 @@ router = APIRouter(
 
 
 @router.get("/", response_model=PaginatedResponse[SchoolResponse])
-def list_schools(limit: int = 100, offset: int = 0, db: Session = Depends(get_db)):
+def list_schools(
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
     """Returns a paginated list of schools."""
-    items, total = school_service.get_schools_with_count(db, offset=offset, limit=limit)
+    if current_user.is_admin:
+        items, total = school_service.get_schools_with_count(db, offset=offset, limit=limit)
+    else:
+        school = school_service.get_school_by_id(db, current_user.school_id)
+        items = [school] if school else []
+        total = 1 if school else 0
     pages = (total + limit - 1) // limit if limit > 0 else 0
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset, pages=pages)
 
 
 @router.get("/{school_id}", response_model=SchoolResponse)
-def get_school(school_id: int, db: Session = Depends(get_db)):
+def get_school(
+    school_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
     """Returns the school details."""
     school = school_service.get_school_by_id(db, school_id)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
+    check_school_access(current_user, school_id)
     return school
 
 
 @router.get("/{school_id}/balance", response_model=BalanceResponse)
-def get_school_balance(school_id: int, db: Session = Depends(get_db)):
+def get_school_balance(
+    school_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
     """Returns the balance summary for a school."""
     school = school_service.get_school_by_id(db, school_id)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
+    check_school_access(current_user, school_id)
     return school_service.get_school_balance(db, school_id)
 
 
 @router.post("/", response_model=SchoolResponse, status_code=201)
-def create_school(school_data: SchoolCreate, db: Session = Depends(get_db)):
-    """Creates a new school."""
+def create_school(
+    school_data: SchoolCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Creates a new school (admin only)."""
     now = datetime.now()
     school = School(
         name=school_data.name,
@@ -55,9 +79,12 @@ def create_school(school_data: SchoolCreate, db: Session = Depends(get_db)):
 
 @router.put("/{school_id}", response_model=SchoolResponse)
 def update_school(
-    school_id: int, school_data: SchoolUpdate, db: Session = Depends(get_db)
+    school_id: int,
+    school_data: SchoolUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ):
-    """Updates an existing school."""
+    """Updates an existing school (admin only)."""
     school = school_service.get_school_by_id(db, school_id)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")
@@ -66,8 +93,12 @@ def update_school(
 
 
 @router.delete("/{school_id}", status_code=204)
-def delete_school(school_id: int, db: Session = Depends(get_db)):
-    """Deletes a school."""
+def delete_school(
+    school_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Deletes a school (admin only)."""
     school = school_service.get_school_by_id(db, school_id)
     if school is None:
         raise HTTPException(status_code=404, detail="School not found")

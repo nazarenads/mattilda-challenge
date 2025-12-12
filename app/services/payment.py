@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Payment
+from app.db.models import Payment, Student
 from app.schemas import PaymentUpdate
 
 
@@ -23,6 +23,19 @@ def get_payments_with_count(
 ) -> tuple[list[Payment], int]:
     total = db.query(Payment).count()
     items = db.query(Payment).offset(offset).limit(limit).all()
+    return items, total
+
+
+def get_payments_by_school_with_count(
+    db: Session, school_id: int, offset: int = 0, limit: int = 100
+) -> tuple[list[Payment], int]:
+    query = (
+        db.query(Payment)
+        .join(Student, Payment.student_id == Student.id)
+        .filter(Student.school_id == school_id)
+    )
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
     return items, total
 
 

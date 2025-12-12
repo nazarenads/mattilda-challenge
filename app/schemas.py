@@ -182,3 +182,33 @@ class BalanceResponse(BaseModel):
     currency: str | None
     invoices: list[InvoiceResponse]
     payments: list[PaymentResponse]
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    school_id: int | None = None
+    is_admin: bool = False
+
+
+class UserUpdate(BaseModel):
+    email: EmailStr | None = None
+    password: str | None = None
+    school_id: int | None = None
+    is_admin: bool | None = None
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    school_id: int | None
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime

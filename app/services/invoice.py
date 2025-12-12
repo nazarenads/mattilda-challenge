@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Invoice
+from app.db.models import Invoice, Student
 from app.schemas import InvoiceUpdate
 
 
@@ -23,6 +23,19 @@ def get_invoices_with_count(
 ) -> tuple[list[Invoice], int]:
     total = db.query(Invoice).count()
     items = db.query(Invoice).offset(offset).limit(limit).all()
+    return items, total
+
+
+def get_invoices_by_school_with_count(
+    db: Session, school_id: int, offset: int = 0, limit: int = 100
+) -> tuple[list[Invoice], int]:
+    query = (
+        db.query(Invoice)
+        .join(Student, Invoice.student_id == Student.id)
+        .filter(Student.school_id == school_id)
+    )
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
     return items, total
 
 
