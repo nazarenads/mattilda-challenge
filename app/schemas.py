@@ -5,9 +5,19 @@ Define your Pydantic models/schemas here for request/response validation.
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+class InvoiceStatus(str, Enum):
+    DRAFT = "draft"
+    PENDING = "pending"
+    PAID = "paid"
+    PARTIALLY_PAID = "partially_paid"
+    OVERDUE = "overdue"
+    CANCELLED = "cancelled"
 
 T = TypeVar("T")
 
@@ -73,7 +83,7 @@ class InvoiceCreate(BaseModel):
     invoice_number: str
     amount_in_cents: int
     currency: str
-    status: str = "pending"
+    status: InvoiceStatus = InvoiceStatus.PENDING
     issue_date: datetime
     due_date: datetime
     description: str | None = None
@@ -84,7 +94,7 @@ class InvoiceUpdate(BaseModel):
     invoice_number: str | None = None
     amount_in_cents: int | None = None
     currency: str | None = None
-    status: str | None = None
+    status: InvoiceStatus | None = None
     issue_date: datetime | None = None
     due_date: datetime | None = None
     description: str | None = None
@@ -98,7 +108,7 @@ class InvoiceResponse(BaseModel):
     invoice_number: str
     amount_in_cents: int
     currency: str
-    status: str
+    status: InvoiceStatus
     issue_date: datetime
     due_date: datetime
     description: str | None

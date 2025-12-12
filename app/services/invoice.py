@@ -27,7 +27,7 @@ def get_invoices_with_count(
 
 
 def update_invoice(db: Session, invoice: Invoice, invoice_data: InvoiceUpdate) -> Invoice:
-    update_data = invoice_data.model_dump(exclude_unset=True)
+    update_data = invoice_data.model_dump(exclude_unset=True, mode="json")
     for field, value in update_data.items():
         setattr(invoice, field, value)
     db.commit()

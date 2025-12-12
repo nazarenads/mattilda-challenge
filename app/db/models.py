@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+from enum import Enum
+
 from app.db.database import Base  # noqa: F401
 from datetime import datetime
 from sqlalchemy import String, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+
+class InvoiceStatus(str, Enum):
+    DRAFT = "draft"
+    PENDING = "pending"
+    PAID = "paid"
+    PARTIALLY_PAID = "partially_paid"
+    OVERDUE = "overdue"
+    CANCELLED = "cancelled"
 
 
 class School(Base):
@@ -41,7 +52,7 @@ class Invoice(Base):
     invoice_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     amount_in_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default=InvoiceStatus.PENDING.value)
     issue_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
