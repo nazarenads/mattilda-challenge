@@ -2,8 +2,8 @@ from app.db.models import PaymentStatus, PaymentMethod
 
 
 class TestPaymentList:
-    def test_list_payments_empty(self, client):
-        response = client.get("/payment/")
+    def test_list_payments_empty(self, client, admin_headers):
+        response = client.get("/payment/", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -13,13 +13,13 @@ class TestPaymentList:
         assert data["offset"] == 0
         assert data["pages"] == 0
 
-    def test_list_payments_with_data(self, client, db_helpers):
+    def test_list_payments_with_data(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment1 = db_helpers.create_payment(student, amount_in_cents=10000, status=PaymentStatus.PENDING.value)
         payment2 = db_helpers.create_payment(student, amount_in_cents=20000, status=PaymentStatus.COMPLETED.value)
 
-        response = client.get("/payment/")
+        response = client.get("/payment/", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -30,13 +30,13 @@ class TestPaymentList:
         assert payment1.amount_in_cents in payment_amounts
         assert payment2.amount_in_cents in payment_amounts
 
-    def test_list_payments_pagination(self, client, db_helpers):
+    def test_list_payments_pagination(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         for i in range(5):
             db_helpers.create_payment(student, amount_in_cents=10000 * (i + 1))
 
-        response = client.get("/payment/?limit=2&offset=0")
+        response = client.get("/payment/?limit=2&offset=0", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -46,14 +46,14 @@ class TestPaymentList:
         assert data["offset"] == 0
         assert data["pages"] == 3
 
-        response_page2 = client.get("/payment/?limit=2&offset=2")
+        response_page2 = client.get("/payment/?limit=2&offset=2", headers=admin_headers)
         data_page2 = response_page2.json()
         assert len(data_page2["items"]) == 2
         assert data_page2["offset"] == 2
 
 
 class TestPaymentCreate:
-    def test_create_payment(self, client, db_helpers):
+    def test_create_payment(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment_data = {
@@ -63,7 +63,7 @@ class TestPaymentCreate:
             "student_id": student.id
         }
 
-        response = client.post("/payment/", json=payment_data)
+        response = client.post("/payment/", json=payment_data, headers=admin_headers)
 
         assert response.status_code == 201
         data = response.json()
@@ -82,7 +82,7 @@ class TestPaymentCreate:
         assert db_payment.payment_method == "card"
         assert db_helpers.count_payments() == 1
 
-    def test_create_payment_student_not_found(self, client):
+    def test_create_payment_student_not_found(self, client, admin_headers):
         payment_data = {
             "amount_in_cents": 10000,
             "status": "pending",
@@ -90,12 +90,12 @@ class TestPaymentCreate:
             "student_id": 999
         }
 
-        response = client.post("/payment/", json=payment_data)
+        response = client.post("/payment/", json=payment_data, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
-    def test_create_payment_with_different_methods(self, client, db_helpers):
+    def test_create_payment_with_different_methods(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
 
@@ -106,7 +106,7 @@ class TestPaymentCreate:
                 "payment_method": method,
                 "student_id": student.id
             }
-            response = client.post("/payment/", json=payment_data)
+            response = client.post("/payment/", json=payment_data, headers=admin_headers)
             assert response.status_code == 201
             assert response.json()["payment_method"] == method
 
@@ -114,7 +114,7 @@ class TestPaymentCreate:
 
 
 class TestPaymentGet:
-    def test_get_payment(self, client, db_helpers):
+    def test_get_payment(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment = db_helpers.create_payment(
@@ -124,7 +124,7 @@ class TestPaymentGet:
             payment_method=PaymentMethod.BANK_TRANSFER.value
         )
 
-        response = client.get(f"/payment/{payment.id}")
+        response = client.get(f"/payment/{payment.id}", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -136,15 +136,15 @@ class TestPaymentGet:
         assert "created_at" in data
         assert "updated_at" in data
 
-    def test_get_payment_not_found(self, client):
-        response = client.get("/payment/999")
+    def test_get_payment_not_found(self, client, admin_headers):
+        response = client.get("/payment/999", headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Payment not found"
 
 
 class TestPaymentUpdate:
-    def test_update_payment(self, client, db_helpers):
+    def test_update_payment(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment = db_helpers.create_payment(
@@ -155,7 +155,7 @@ class TestPaymentUpdate:
         original_created_at = payment.created_at
 
         update_data = {"status": "completed", "amount_in_cents": 15000}
-        response = client.put(f"/payment/{payment.id}", json=update_data)
+        response = client.put(f"/payment/{payment.id}", json=update_data, headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -168,39 +168,39 @@ class TestPaymentUpdate:
         assert db_payment.created_at == original_created_at
         assert db_payment.updated_at > original_created_at
 
-    def test_update_payment_not_found(self, client):
-        response = client.put("/payment/999", json={"status": "completed"})
+    def test_update_payment_not_found(self, client, admin_headers):
+        response = client.put("/payment/999", json={"status": "completed"}, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Payment not found"
 
-    def test_update_payment_student_not_found(self, client, db_helpers):
+    def test_update_payment_student_not_found(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment = db_helpers.create_payment(student)
 
-        response = client.put(f"/payment/{payment.id}", json={"student_id": 999})
+        response = client.put(f"/payment/{payment.id}", json={"student_id": 999}, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
 
 class TestPaymentDelete:
-    def test_delete_payment(self, client, db_helpers):
+    def test_delete_payment(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         payment = db_helpers.create_payment(student)
         payment_id = payment.id
         assert db_helpers.count_payments() == 1
 
-        response = client.delete(f"/payment/{payment_id}")
+        response = client.delete(f"/payment/{payment_id}", headers=admin_headers)
 
         assert response.status_code == 204
         assert db_helpers.get_payment(payment_id) is None
         assert db_helpers.count_payments() == 0
 
-    def test_delete_payment_not_found(self, client):
-        response = client.delete("/payment/999")
+    def test_delete_payment_not_found(self, client, admin_headers):
+        response = client.delete("/payment/999", headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Payment not found"

@@ -40,6 +40,7 @@ class School(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     students: Mapped[list[Student]] = relationship(back_populates="school")
+    users: Mapped[list[User]] = relationship(back_populates="school")
 
 
 class Student(Base):
@@ -103,3 +104,17 @@ class PaymentAllocation(Base):
 
     payment: Mapped[Payment] = relationship(back_populates="allocations")
     invoice: Mapped[Invoice] = relationship(back_populates="allocations")
+
+
+class User(Base):
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    school_id: Mapped[int | None] = mapped_column(ForeignKey("school.id"), nullable=True)
+    is_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    school: Mapped[School | None] = relationship(back_populates="users")

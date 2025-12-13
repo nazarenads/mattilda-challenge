@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.db.models import PaymentAllocation, Payment, Invoice, PaymentStatus, InvoiceStatus
+from app.db.models import PaymentAllocation, Payment, Invoice, Student, PaymentStatus, InvoiceStatus, User
 from app.schemas import PaymentAllocationUpdate
 
 
@@ -15,6 +15,19 @@ def get_allocation_by_id(db: Session, allocation_id: int) -> PaymentAllocation |
     return db.query(PaymentAllocation).filter(PaymentAllocation.id == allocation_id).first()
 
 
+def get_allocation_by_id_for_user(db: Session, allocation_id: int, user: User) -> PaymentAllocation | None:
+    """Get payment allocation by ID, filtered by user's school access."""
+    query = db.query(PaymentAllocation).filter(PaymentAllocation.id == allocation_id)
+    if not user.is_admin:
+        query = (
+            query
+            .join(Invoice)
+            .join(Student)
+            .filter(Student.school_id == user.school_id)
+        )
+    return query.first()
+
+
 def get_allocations(db: Session, offset: int = 0, limit: int = 100) -> list[PaymentAllocation]:
     return db.query(PaymentAllocation).offset(offset).limit(limit).all()
 
@@ -24,6 +37,20 @@ def get_allocations_with_count(
 ) -> tuple[list[PaymentAllocation], int]:
     total = db.query(PaymentAllocation).count()
     items = db.query(PaymentAllocation).offset(offset).limit(limit).all()
+    return items, total
+
+
+def get_allocations_by_school_with_count(
+    db: Session, school_id: int, offset: int = 0, limit: int = 100
+) -> tuple[list[PaymentAllocation], int]:
+    query = (
+        db.query(PaymentAllocation)
+        .join(Invoice, PaymentAllocation.invoice_id == Invoice.id)
+        .join(Student, Invoice.student_id == Student.id)
+        .filter(Student.school_id == school_id)
+    )
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
     return items, total
 
 

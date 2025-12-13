@@ -2,8 +2,8 @@ from app.db.models import InvoiceStatus, PaymentStatus
 
 
 class TestStudentList:
-    def test_list_students_empty(self, client):
-        response = client.get("/student/")
+    def test_list_students_empty(self, client, admin_headers):
+        response = client.get("/student/", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -13,12 +13,12 @@ class TestStudentList:
         assert data["offset"] == 0
         assert data["pages"] == 0
 
-    def test_list_students_with_data(self, client, db_helpers):
+    def test_list_students_with_data(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student1 = db_helpers.create_student(school, identifier="ID-001", name="Student 1", email="s1@example.com")
         student2 = db_helpers.create_student(school, identifier="ID-002", name="Student 2", email="s2@example.com")
 
-        response = client.get("/student/")
+        response = client.get("/student/", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -29,12 +29,12 @@ class TestStudentList:
         assert student1.name in student_names
         assert student2.name in student_names
 
-    def test_list_students_pagination(self, client, db_helpers):
+    def test_list_students_pagination(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         for i in range(5):
             db_helpers.create_student(school, identifier=f"ID-{i}", name=f"Student {i}", email=f"s{i}@example.com")
 
-        response = client.get("/student/?limit=2&offset=0")
+        response = client.get("/student/?limit=2&offset=0", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -44,14 +44,14 @@ class TestStudentList:
         assert data["offset"] == 0
         assert data["pages"] == 3
 
-        response_page2 = client.get("/student/?limit=2&offset=2")
+        response_page2 = client.get("/student/?limit=2&offset=2", headers=admin_headers)
         data_page2 = response_page2.json()
         assert len(data_page2["items"]) == 2
         assert data_page2["offset"] == 2
 
 
 class TestStudentCreate:
-    def test_create_student(self, client, db_helpers):
+    def test_create_student(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student_data = {
             "identifier": "ID-001",
@@ -60,7 +60,7 @@ class TestStudentCreate:
             "school_id": school.id
         }
 
-        response = client.post("/student/", json=student_data)
+        response = client.post("/student/", json=student_data, headers=admin_headers)
 
         assert response.status_code == 201
         data = response.json()
@@ -79,7 +79,7 @@ class TestStudentCreate:
         assert db_student.email == "john@example.com"
         assert db_helpers.count_students() == 1
 
-    def test_create_student_school_not_found(self, client):
+    def test_create_student_school_not_found(self, client, admin_headers):
         student_data = {
             "identifier": "ID-001",
             "name": "John Doe",
@@ -87,18 +87,18 @@ class TestStudentCreate:
             "school_id": 999
         }
 
-        response = client.post("/student/", json=student_data)
+        response = client.post("/student/", json=student_data, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "School not found"
 
 
 class TestStudentGet:
-    def test_get_student(self, client, db_helpers):
+    def test_get_student(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school, identifier="ID-001", name="John Doe", email="john@example.com")
 
-        response = client.get(f"/student/{student.id}")
+        response = client.get(f"/student/{student.id}", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -110,21 +110,21 @@ class TestStudentGet:
         assert "created_at" in data
         assert "updated_at" in data
 
-    def test_get_student_not_found(self, client):
-        response = client.get("/student/999")
+    def test_get_student_not_found(self, client, admin_headers):
+        response = client.get("/student/999", headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
 
 class TestStudentUpdate:
-    def test_update_student(self, client, db_helpers):
+    def test_update_student(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school, identifier="ID-001", name="Original Name", email="original@example.com")
         original_created_at = student.created_at
 
         update_data = {"name": "Updated Name", "email": "updated@example.com"}
-        response = client.put(f"/student/{student.id}", json=update_data)
+        response = client.put(f"/student/{student.id}", json=update_data, headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -138,48 +138,48 @@ class TestStudentUpdate:
         assert db_student.created_at == original_created_at
         assert db_student.updated_at > original_created_at
 
-    def test_update_student_not_found(self, client):
-        response = client.put("/student/999", json={"name": "New Name"})
+    def test_update_student_not_found(self, client, admin_headers):
+        response = client.put("/student/999", json={"name": "New Name"}, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
-    def test_update_student_school_not_found(self, client, db_helpers):
+    def test_update_student_school_not_found(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
 
-        response = client.put(f"/student/{student.id}", json={"school_id": 999})
+        response = client.put(f"/student/{student.id}", json={"school_id": 999}, headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "School not found"
 
 
 class TestStudentDelete:
-    def test_delete_student(self, client, db_helpers):
+    def test_delete_student(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         student_id = student.id
         assert db_helpers.count_students() == 1
 
-        response = client.delete(f"/student/{student_id}")
+        response = client.delete(f"/student/{student_id}", headers=admin_headers)
 
         assert response.status_code == 204
         assert db_helpers.get_student(student_id) is None
         assert db_helpers.count_students() == 0
 
-    def test_delete_student_not_found(self, client):
-        response = client.delete("/student/999")
+    def test_delete_student_not_found(self, client, admin_headers):
+        response = client.delete("/student/999", headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
 
 class TestStudentBalance:
-    def test_get_student_balance_empty(self, client, db_helpers):
+    def test_get_student_balance_empty(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
 
-        response = client.get(f"/student/{student.id}/balance")
+        response = client.get(f"/student/{student.id}/balance", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -190,7 +190,7 @@ class TestStudentBalance:
         assert data["invoices"] == []
         assert data["payments"] == []
 
-    def test_get_student_balance_with_data(self, client, db_helpers):
+    def test_get_student_balance_with_data(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
 
@@ -204,7 +204,7 @@ class TestStudentBalance:
         payment = db_helpers.create_payment(student, amount_in_cents=3000)
         db_helpers.create_allocation(payment, invoice1, amount_in_cents=3000)
 
-        response = client.get(f"/student/{student.id}/balance")
+        response = client.get(f"/student/{student.id}/balance", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -219,13 +219,13 @@ class TestStudentBalance:
         assert payment_data["amount_in_cents"] == 3000
         assert payment_data["status"] == "completed"
 
-    def test_get_student_balance_not_found(self, client):
-        response = client.get("/student/999/balance")
+    def test_get_student_balance_not_found(self, client, admin_headers):
+        response = client.get("/student/999/balance", headers=admin_headers)
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Student not found"
 
-    def test_get_student_balance_excludes_pending_payments(self, client, db_helpers):
+    def test_get_student_balance_excludes_pending_payments(self, client, db_helpers, admin_headers):
         school = db_helpers.create_school()
         student = db_helpers.create_student(school)
         invoice = db_helpers.create_invoice(student, amount_in_cents=10000)
@@ -235,7 +235,7 @@ class TestStudentBalance:
         )
         db_helpers.create_allocation(pending_payment, invoice, amount_in_cents=10000)
 
-        response = client.get(f"/student/{student.id}/balance")
+        response = client.get(f"/student/{student.id}/balance", headers=admin_headers)
 
         data = response.json()
         assert data["total_invoiced_cents"] == 10000

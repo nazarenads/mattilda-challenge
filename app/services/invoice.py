@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.models import Invoice
+from app.db.models import Invoice, Student, User
 from app.schemas import InvoiceUpdate
 
 
@@ -14,6 +14,14 @@ def get_invoice_by_id(db: Session, invoice_id: int) -> Invoice | None:
     return db.query(Invoice).filter(Invoice.id == invoice_id).first()
 
 
+def get_invoice_by_id_for_user(db: Session, invoice_id: int, user: User) -> Invoice | None:
+    """Get invoice by ID, filtered by user's school access."""
+    query = db.query(Invoice).filter(Invoice.id == invoice_id)
+    if not user.is_admin:
+        query = query.join(Student).filter(Student.school_id == user.school_id)
+    return query.first()
+
+
 def get_invoices(db: Session, offset: int = 0, limit: int = 100) -> list[Invoice]:
     return db.query(Invoice).offset(offset).limit(limit).all()
 
@@ -23,6 +31,19 @@ def get_invoices_with_count(
 ) -> tuple[list[Invoice], int]:
     total = db.query(Invoice).count()
     items = db.query(Invoice).offset(offset).limit(limit).all()
+    return items, total
+
+
+def get_invoices_by_school_with_count(
+    db: Session, school_id: int, offset: int = 0, limit: int = 100
+) -> tuple[list[Invoice], int]:
+    query = (
+        db.query(Invoice)
+        .join(Student, Invoice.student_id == Student.id)
+        .filter(Student.school_id == school_id)
+    )
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
     return items, total
 
 
