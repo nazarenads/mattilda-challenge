@@ -6,9 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.database import engine, Base, SessionLocal
+from app.logging_config import setup_logging, get_logger
 from app.routers import health, school, student, invoice, payment, payment_allocation, auth, user
 from app.schemas import UserCreate
 from app.services import user as user_service
+
+logger = get_logger(__name__)
 
 
 def create_admin_user_if_not_exists():
@@ -28,15 +31,16 @@ def create_admin_user_if_not_exists():
                 is_admin=True,
             )
             user_service.create_user(db, admin_data)
-            print(f"✓ Admin user created: {settings.admin_email}")
+            logger.info("Admin user created: %s", settings.admin_email)
         else:
-            print(f"✓ Admin user already exists: {settings.admin_email}")
+            logger.info("Admin user already exists: %s", settings.admin_email)
     finally:
         db.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
     Base.metadata.create_all(bind=engine)
     create_admin_user_if_not_exists()
     yield

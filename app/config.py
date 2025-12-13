@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     # Application
     debug: bool = False
     environment: str = "dev"
+    log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
     # Authentication
     secret_key: str = Field(

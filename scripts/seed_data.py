@@ -11,6 +11,9 @@ import random
 from sqlalchemy.orm import Session
 
 from app.db.database import Base, engine, SessionLocal
+from app.logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
 from app.db.models import (
     School,
     Student,
@@ -31,7 +34,7 @@ def clear_database(db: Session) -> None:
     db.query(Student).delete()
     db.query(School).delete()
     db.commit()
-    print("✓ Cleared existing data")
+    logger.info("Cleared existing data")
 
 
 def create_schools(db: Session) -> list[School]:
@@ -61,7 +64,7 @@ def create_schools(db: Session) -> list[School]:
     for school in schools:
         db.refresh(school)
 
-    print(f"✓ Created {len(schools)} schools")
+    logger.info("Created %d schools", len(schools))
     return schools
 
 
@@ -95,7 +98,7 @@ def create_students(db: Session, schools: list[School]) -> list[Student]:
     for student in students:
         db.refresh(student)
 
-    print(f"✓ Created {len(students)} students")
+    logger.info("Created %d students", len(students))
     return students
 
 
@@ -166,7 +169,7 @@ def create_invoices(db: Session, students: list[Student]) -> list[Invoice]:
     for invoice in invoices:
         db.refresh(invoice)
 
-    print(f"✓ Created {len(invoices)} invoices")
+    logger.info("Created %d invoices", len(invoices))
     return invoices
 
 
@@ -250,49 +253,50 @@ def create_payments_and_allocations(db: Session, students: list[Student], invoic
         payments_created += 1
 
     db.commit()
-    print(f"✓ Created {payments_created} payments")
-    print(f"✓ Created {allocations_created} payment allocations")
+    logger.info("Created %d payments", payments_created)
+    logger.info("Created %d payment allocations", allocations_created)
 
 
-def print_summary(db: Session) -> None:
-    """Print a summary of the seeded data."""
+def log_summary(db: Session) -> None:
+    """Log a summary of the seeded data."""
     schools_count = db.query(School).count()
     students_count = db.query(Student).count()
     invoices_count = db.query(Invoice).count()
     payments_count = db.query(Payment).count()
     allocations_count = db.query(PaymentAllocation).count()
 
-    print("\n" + "=" * 50)
-    print("DATABASE SEED SUMMARY")
-    print("=" * 50)
-    print(f"Schools:             {schools_count}")
-    print(f"Students:            {students_count}")
-    print(f"Invoices:            {invoices_count}")
-    print(f"Payments:            {payments_count}")
-    print(f"Payment Allocations: {allocations_count}")
-    print("=" * 50)
+    logger.info("=" * 50)
+    logger.info("DATABASE SEED SUMMARY")
+    logger.info("=" * 50)
+    logger.info("Schools:             %d", schools_count)
+    logger.info("Students:            %d", students_count)
+    logger.info("Invoices:            %d", invoices_count)
+    logger.info("Payments:            %d", payments_count)
+    logger.info("Payment Allocations: %d", allocations_count)
+    logger.info("=" * 50)
 
-    print("\nInvoices by status:")
+    logger.info("Invoices by status:")
     for status in InvoiceStatus:
         count = db.query(Invoice).filter(Invoice.status == status.value).count()
         if count > 0:
-            print(f"  {status.value:15} {count}")
+            logger.info("  %s %d", status.value.ljust(15), count)
 
-    print("\nPayments by status:")
+    logger.info("Payments by status:")
     for status in PaymentStatus:
         count = db.query(Payment).filter(Payment.status == status.value).count()
         if count > 0:
-            print(f"  {status.value:15} {count}")
+            logger.info("  %s %d", status.value.ljust(15), count)
 
-    print("\nPayments by method:")
+    logger.info("Payments by method:")
     for method in PaymentMethod:
         count = db.query(Payment).filter(Payment.payment_method == method.value).count()
         if count > 0:
-            print(f"  {method.value:15} {count}")
+            logger.info("  %s %d", method.value.ljust(15), count)
 
 
 def main():
-    print("\n🌱 Starting database seed...\n")
+    setup_logging()
+    logger.info("Starting database seed...")
 
     Base.metadata.create_all(bind=engine)
 
@@ -303,8 +307,8 @@ def main():
         students = create_students(db, schools)
         invoices = create_invoices(db, students)
         create_payments_and_allocations(db, students, invoices)
-        print_summary(db)
-        print("\n✅ Database seeded successfully!\n")
+        log_summary(db)
+        logger.info("Database seeded successfully!")
     finally:
         db.close()
 
