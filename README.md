@@ -136,7 +136,11 @@ Configuration is managed through environment variables. Copy `.env.example` to `
 
 This project API has been deployed using Railway and is live to access at: https://mattilda-challenge-production.up.railway.app/docs
 
-There's also a frontend developed using v0 that consumes the API and is deployed at: https://v0-school-finance-application.vercel.app
+There's also a frontend developed using v0 that consumes the API and is deployed at: https://v0-school-finance-application.vercel.app 
+
+Use these credentials to log in:
+- **Email:** `admin@admin.com`
+- **Password:** `admin1234`
 
 
 ### Some final considerations: 
