@@ -1,7 +1,6 @@
 import os
 from logging.config import fileConfig
 
-from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -10,9 +9,7 @@ from alembic import context
 from app.db.database import Base
 from app.db.models import *  # noqa: F401, F403
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost:5432/db")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
