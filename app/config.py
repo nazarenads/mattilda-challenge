@@ -28,11 +28,11 @@ class Settings(BaseSettings):
 
     # Admin user (created on startup if doesn't exist)
     admin_email: str = Field(
-        default="admin@example.com",
+        default="admin@admin.com",
         validation_alias="ADMIN_EMAIL",
     )
     admin_password: str = Field(
-        default="changeme",
+        default="admin1234",
         validation_alias="ADMIN_PASSWORD",
     )
 
