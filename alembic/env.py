@@ -1,5 +1,7 @@
+import os
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -7,8 +9,10 @@ from alembic import context
 
 from app.db.database import Base
 from app.db.models import *  # noqa: F401, F403
-from app.config import settings
 
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/db")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -24,8 +28,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
-# Set the database URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set the database URL from environment
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
@@ -40,9 +44,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.database_url
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -60,7 +63,7 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.database_url
+    configuration["sqlalchemy.url"] = DATABASE_URL
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
