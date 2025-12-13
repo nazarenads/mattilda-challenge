@@ -7,6 +7,7 @@ from app.dependencies import get_db, get_current_active_user
 from app.schemas import PaymentCreate, PaymentUpdate, PaymentResponse, PaginatedResponse
 from app.services import payment as payment_service
 from app.services import student as student_service
+from app.validators.payment import validate_payment_update, validate_payment_delete
 
 router = APIRouter(
     prefix="/payment",
@@ -59,6 +60,7 @@ def create_payment(
     now = datetime.now()
     payment = Payment(
         amount_in_cents=payment_data.amount_in_cents,
+        currency=payment_data.currency,
         status=payment_data.status.value,
         payment_method=payment_data.payment_method.value,
         student_id=payment_data.student_id,
@@ -85,6 +87,14 @@ def update_payment(
         if student is None:
             raise HTTPException(status_code=404, detail="Student not found")
 
+    # Validate payment update rules (cannot modify allocated payments, etc.)
+    validate_payment_update(
+        db,
+        payment,
+        new_status=payment_data.status.value if payment_data.status else None,
+        new_amount=payment_data.amount_in_cents,
+    )
+
     payment.updated_at = datetime.now()
     return payment_service.update_payment(db, payment, payment_data)
 
@@ -99,4 +109,8 @@ def delete_payment(
     payment = payment_service.get_payment_by_id_for_user(db, payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Validate payment can be deleted (no allocations)
+    validate_payment_delete(db, payment)
+
     payment_service.delete_payment(db, payment)

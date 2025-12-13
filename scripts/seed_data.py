@@ -197,6 +197,7 @@ def create_payments_and_allocations(db: Session, students: list[Student], invoic
     for invoice in paid_invoices:
         payment = Payment(
             amount_in_cents=invoice.amount_in_cents,
+            currency=invoice.currency,
             status=PaymentStatus.COMPLETED.value,
             payment_method=random.choice(payment_methods),
             student_id=invoice.student_id,
@@ -221,6 +222,7 @@ def create_payments_and_allocations(db: Session, students: list[Student], invoic
         partial_amount = invoice.amount_in_cents // random.randint(2, 4)
         payment = Payment(
             amount_in_cents=partial_amount,
+            currency=invoice.currency,
             status=PaymentStatus.COMPLETED.value,
             payment_method=random.choice(payment_methods),
             student_id=invoice.student_id,
@@ -240,9 +242,16 @@ def create_payments_and_allocations(db: Session, students: list[Student], invoic
         payments_created += 1
         allocations_created += 1
 
+    currencies_by_country = {
+        "MX": "MXN",
+        "CO": "COP",
+    }
     for student in random.sample(students, min(10, len(students))):
+        school = db.query(School).filter(School.id == student.school_id).first()
+        currency = currencies_by_country.get(school.country, "USD")
         payment = Payment(
             amount_in_cents=random.choice([5000, 10000, 20000]),
+            currency=currency,
             status=random.choice(payment_statuses),
             payment_method=random.choice(payment_methods),
             student_id=student.id,

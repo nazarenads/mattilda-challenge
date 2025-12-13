@@ -20,6 +20,7 @@ def upgrade() -> None:
     op.create_table('payment',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('amount_in_cents', sa.Integer(), nullable=False),
+    sa.Column('currency', sa.String(length=3), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('payment_method', sa.String(length=20), nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),

@@ -150,12 +150,14 @@ class DatabaseHelpers:
         self,
         student: Student,
         amount_in_cents: int = 10000,
+        currency: str = "USD",
         status: str = PaymentStatus.COMPLETED.value,
         payment_method: str = PaymentMethod.CARD.value,
     ) -> Payment:
         now = datetime.now()
         payment = Payment(
             amount_in_cents=amount_in_cents,
+            currency=currency,
             status=status,
             payment_method=payment_method,
             student_id=student.id,

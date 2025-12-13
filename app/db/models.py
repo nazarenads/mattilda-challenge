@@ -83,6 +83,7 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     amount_in_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default=PaymentStatus.PENDING.value)
     payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
     student_id: Mapped[int] = mapped_column(ForeignKey("student.id"), nullable=False)

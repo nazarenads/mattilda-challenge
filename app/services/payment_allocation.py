@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.models import PaymentAllocation, Payment, Invoice, Student, PaymentStatus, InvoiceStatus, User
@@ -5,10 +7,43 @@ from app.schemas import PaymentAllocationUpdate
 
 
 def create_allocation(db: Session, allocation: PaymentAllocation) -> PaymentAllocation:
+    """Create allocation without updating invoice status. Use create_allocation_with_status_update instead."""
     db.add(allocation)
     db.commit()
     db.refresh(allocation)
     return allocation
+
+
+def create_allocation_with_status_update(
+    db: Session,
+    payment: Payment,
+    invoice: Invoice,
+    amount_in_cents: int,
+) -> PaymentAllocation:
+    """
+    Create allocation and update invoice status in a single transaction.
+    Rolls back both if either fails.
+    """
+    try:
+        now = datetime.now()
+        allocation = PaymentAllocation(
+            payment_id=payment.id,
+            invoice_id=invoice.id,
+            amount_in_cents=amount_in_cents,
+            created_at=now,
+        )
+        db.add(allocation)
+        db.flush()  # Get the ID without committing
+
+        # Update invoice status
+        _update_invoice_status_internal(db, invoice)
+
+        db.commit()
+        db.refresh(allocation)
+        return allocation
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_allocation_by_id(db: Session, allocation_id: int) -> PaymentAllocation | None:
@@ -57,6 +92,7 @@ def get_allocations_by_school_with_count(
 def update_allocation(
     db: Session, allocation: PaymentAllocation, allocation_data: PaymentAllocationUpdate
 ) -> PaymentAllocation:
+    """Update allocation without updating invoice status. Use update_allocation_with_status_update instead."""
     update_data = allocation_data.model_dump(exclude_unset=True, mode="json")
     for field, value in update_data.items():
         setattr(allocation, field, value)
@@ -65,9 +101,59 @@ def update_allocation(
     return allocation
 
 
+def update_allocation_with_status_update(
+    db: Session,
+    allocation: PaymentAllocation,
+    allocation_data: PaymentAllocationUpdate,
+) -> PaymentAllocation:
+    """
+    Update allocation and update invoice status in a single transaction.
+    Rolls back both if either fails.
+    """
+    try:
+        update_data = allocation_data.model_dump(exclude_unset=True, mode="json")
+        for field, value in update_data.items():
+            setattr(allocation, field, value)
+        db.flush()
+
+        # Update invoice status
+        invoice = allocation.invoice
+        _update_invoice_status_internal(db, invoice)
+
+        db.commit()
+        db.refresh(allocation)
+        return allocation
+    except Exception:
+        db.rollback()
+        raise
+
+
 def delete_allocation(db: Session, allocation: PaymentAllocation) -> None:
+    """Delete allocation without updating invoice status. Use delete_allocation_with_status_update instead."""
     db.delete(allocation)
     db.commit()
+
+
+def delete_allocation_with_status_update(
+    db: Session,
+    allocation: PaymentAllocation,
+) -> None:
+    """
+    Delete allocation and update invoice status in a single transaction.
+    Rolls back both if either fails.
+    """
+    try:
+        invoice = allocation.invoice
+        db.delete(allocation)
+        db.flush()
+
+        # Update invoice status
+        _update_invoice_status_internal(db, invoice)
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_invoice_paid_amount(db: Session, invoice_id: int) -> int:
@@ -84,15 +170,27 @@ def get_invoice_paid_amount(db: Session, invoice_id: int) -> int:
     return int(result)
 
 
-def update_invoice_status_from_payments(db: Session, invoice: Invoice) -> Invoice:
-    """Update invoice status based on total paid amount from completed payments."""
+def _update_invoice_status_internal(db: Session, invoice: Invoice) -> None:
+    """
+    Update invoice status based on total paid amount from completed payments.
+    Internal function - does NOT commit. Use within a transaction.
+    """
     paid_amount = get_invoice_paid_amount(db, invoice.id)
-    
+
     if paid_amount >= invoice.amount_in_cents:
         invoice.status = InvoiceStatus.PAID.value
     elif paid_amount > 0:
         invoice.status = InvoiceStatus.PARTIALLY_PAID.value
-    
+    # If paid_amount == 0, we don't change the status (could be PENDING, OVERDUE, etc.)
+
+
+def update_invoice_status_from_payments(db: Session, invoice: Invoice) -> Invoice:
+    """
+    Update invoice status based on total paid amount from completed payments.
+    This is a standalone operation that commits immediately.
+    Prefer using the transactional functions (create/update/delete_allocation_with_status_update).
+    """
+    _update_invoice_status_internal(db, invoice)
     db.commit()
     db.refresh(invoice)
     return invoice
