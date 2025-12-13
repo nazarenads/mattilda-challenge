@@ -1,8 +1,7 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db.models import PaymentAllocation, User
+from app.db.models import User
 from app.dependencies import get_db, get_current_active_user
 from app.schemas import (
     PaymentAllocationCreate,
@@ -13,6 +12,7 @@ from app.schemas import (
 from app.services import payment_allocation as allocation_service
 from app.services import payment as payment_service
 from app.services import invoice as invoice_service
+from app.validators.allocation import validate_allocation_create, validate_allocation_update
 
 router = APIRouter(
     prefix="/payment-allocation",
@@ -57,7 +57,7 @@ def create_allocation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Creates a new payment allocation and updates invoice status."""
+    """Creates a new payment allocation and updates invoice status atomically."""
     payment = payment_service.get_payment_by_id_for_user(db, allocation_data.payment_id, current_user)
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -66,18 +66,13 @@ def create_allocation(
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    now = datetime.now()
-    allocation = PaymentAllocation(
-        payment_id=allocation_data.payment_id,
-        invoice_id=allocation_data.invoice_id,
-        amount_in_cents=allocation_data.amount_in_cents,
-        created_at=now,
+    # Validate allocation rules
+    validate_allocation_create(db, payment, invoice, allocation_data.amount_in_cents)
+
+    # Create allocation and update invoice status in a single transaction
+    return allocation_service.create_allocation_with_status_update(
+        db, payment, invoice, allocation_data.amount_in_cents
     )
-    created_allocation = allocation_service.create_allocation(db, allocation)
-
-    allocation_service.update_invoice_status_from_payments(db, invoice)
-
-    return created_allocation
 
 
 @router.put("/{allocation_id}", response_model=PaymentAllocationResponse)
@@ -87,18 +82,16 @@ def update_allocation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Updates an existing payment allocation and updates invoice status."""
+    """Updates an existing payment allocation and updates invoice status atomically."""
     allocation = allocation_service.get_allocation_by_id_for_user(db, allocation_id, current_user)
     if allocation is None:
         raise HTTPException(status_code=404, detail="Payment allocation not found")
 
-    updated_allocation = allocation_service.update_allocation(db, allocation, allocation_data)
+    # Validate allocation update rules
+    validate_allocation_update(db, allocation, allocation_data.amount_in_cents)
 
-    invoice = invoice_service.get_invoice_by_id_for_user(db, allocation.invoice_id, current_user)
-    if invoice:
-        allocation_service.update_invoice_status_from_payments(db, invoice)
-
-    return updated_allocation
+    # Update allocation and invoice status in a single transaction
+    return allocation_service.update_allocation_with_status_update(db, allocation, allocation_data)
 
 
 @router.delete("/{allocation_id}", status_code=204)
@@ -107,14 +100,10 @@ def delete_allocation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Deletes a payment allocation and updates invoice status."""
+    """Deletes a payment allocation and updates invoice status atomically."""
     allocation = allocation_service.get_allocation_by_id_for_user(db, allocation_id, current_user)
     if allocation is None:
         raise HTTPException(status_code=404, detail="Payment allocation not found")
 
-    invoice_id = allocation.invoice_id
-    allocation_service.delete_allocation(db, allocation)
-
-    invoice = invoice_service.get_invoice_by_id_for_user(db, invoice_id, current_user)
-    if invoice:
-        allocation_service.update_invoice_status_from_payments(db, invoice)
+    # Delete allocation and update invoice status in a single transaction
+    allocation_service.delete_allocation_with_status_update(db, allocation)

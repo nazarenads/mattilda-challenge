@@ -131,6 +131,7 @@ class InvoiceResponse(BaseModel):
 
 class PaymentCreate(BaseModel):
     amount_in_cents: int
+    currency: str
     status: PaymentStatus = PaymentStatus.PENDING
     payment_method: PaymentMethod
     student_id: int
@@ -138,6 +139,7 @@ class PaymentCreate(BaseModel):
 
 class PaymentUpdate(BaseModel):
     amount_in_cents: int | None = None
+    currency: str | None = None
     status: PaymentStatus | None = None
     payment_method: PaymentMethod | None = None
     student_id: int | None = None
@@ -148,6 +150,7 @@ class PaymentResponse(BaseModel):
 
     id: int
     amount_in_cents: int
+    currency: str
     status: PaymentStatus
     payment_method: PaymentMethod
     student_id: int
