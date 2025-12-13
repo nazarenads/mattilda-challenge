@@ -1,33 +1,6 @@
-# FastAPI Boilerplate
+# School administration platform
 
-A clean FastAPI project boilerplate with PostgreSQL, SQLAlchemy, and Alembic.
 
-## Project Structure
-
-```
-boilerplate/
-├── alembic/              # Database migrations
-│   ├── versions/         # Migration files
-│   ├── env.py
-│   ├── README
-│   └── script.py.mako
-├── app/
-│   ├── db/
-│   │   ├── database.py   # Database connection and session
-│   │   └── models.py     # SQLAlchemy models
-│   ├── routers/
-│   │   └── health.py     # Health check endpoint
-│   ├── services/         # Business logic
-│   ├── config.py         # Application settings
-│   ├── dependencies.py   # FastAPI dependencies
-│   ├── main.py           # FastAPI application
-│   └── schemas.py        # Pydantic schemas
-├── alembic.ini
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-└── README.md
-```
 
 ## Getting Started
 
@@ -52,10 +25,57 @@ boilerplate/
    docker compose down
    ```
 
+## Authentication
+
+The API uses JWT (JSON Web Token) authentication. Most endpoints require a valid token.
+
+### Default Admin User
+
+On startup, an admin user is automatically created with these default credentials:
+- **Email:** `admin@admin.com`
+- **Password:** `admin1234`
+
+
+### Getting a Token
+
+To authenticate, send a POST request to `/token` with `username` and `password` as **form data** (not JSON):
+
+```bash
+curl -X POST http://localhost:8000/token \
+  -d "username=admin@admin.com" \
+  -d "password=admin1234"
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+### Using the Token
+
+Include the token in the `Authorization` header for protected endpoints:
+
+```bash
+curl -X GET http://localhost:8000/school/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Swagger UI Authentication
+
+1. Click the **"Authorize"** button (🔓) at the top of the Swagger UI
+2. Enter `admin@admin.com` as username and `admin1234` as password
+3. Click **"Authorize"**
+4. All subsequent requests will include the token automatically
+
 ## API Endpoints
 
+- `POST /token` - Get authentication token
 - `GET /health` - Health check endpoint
 - `GET /docs` - Swagger UI documentation
+- **Users:** `GET/POST /user/`, `GET/PUT/DELETE /user/{id}` (admin only)
 - **Schools:** `GET/POST /school/`, `GET/PUT/DELETE /school/{id}`, `GET /school/{id}/balance`
 - **Students:** `GET/POST /student/`, `GET/PUT/DELETE /student/{id}`, `GET /student/{id}/balance`
 - **Invoices:** `GET/POST /invoice/`, `GET/PUT/DELETE /invoice/{id}`
@@ -93,11 +113,6 @@ Create a new migration:
 docker compose exec app alembic revision --autogenerate -m "Description of changes"
 ```
 
-Rollback last migration:
-```bash
-docker compose exec app alembic downgrade -1
-```
-
 ## Running Tests
 
 Run all tests inside the container:
@@ -112,18 +127,27 @@ Run tests with coverage report:
 docker compose run --rm app pytest --cov=app --cov-report=term-missing
 ```
 
-Run tests in verbose mode:
-
-```bash
-docker compose run --rm app pytest -v
-```
 
 ## Configuration
 
 Configuration is managed through environment variables. Copy `.env.example` to `.env` and adjust as needed.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@db:5432/boilerplate` |
-| `DEBUG` | Enable debug mode | `true` |
-| `ENVIRONMENT` | Environment name | `dev` |
+## Deployed application
+
+This project API has been deployed using Railway and is live to access at: https://mattilda-challenge-production.up.railway.app/docs
+
+There's also a frontend developed using v0 that consumes the API and is deployed at: https://v0-school-finance-application.vercel.app
+
+
+### Some final considerations: 
+
+ In a real production payments system: 
+ 
+ - Most of the payments will be received via webhooks, by batch creation via file upload or in a message queue and should be automatically allocated to the corresponding invoices, following business logic, this system only exposes a CRUD to create "payment_allocations" which is unrealistic. In a production system, we would need automated reconciliation between internal records and external payment provider data. This includes matching transactions, identifying discrepancies, and generating reconciliation reports.
+
+ - It would also be ideal to have a scheduled job that runs daily at the end of the day to validate invoices with "pending" status, attempting to locate payments that correspond to those invoices and ensuring that the invoice statuses are up to date.
+
+ - Financial records should use soft deletes (deleted_at timestamp) instead of hard deletes. This maintains audit integrity and allows for data recovery if needed.
+
+
+
