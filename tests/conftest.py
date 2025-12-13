@@ -5,12 +5,12 @@ from datetime import datetime
 os.environ["TESTING"] = "true"
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.auth import get_password_hash, create_access_token
-from app.config import settings
 from app.db.database import Base
 from app.db.models import (
     School,
@@ -25,8 +25,10 @@ from app.db.models import (
 )
 from app.dependencies import get_db
 
+load_dotenv()
 
-engine = create_engine(settings.database_url, echo=False)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/db")
+engine = create_engine(DATABASE_URL, echo=False)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

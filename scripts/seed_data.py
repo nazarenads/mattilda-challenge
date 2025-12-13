@@ -8,11 +8,9 @@ Run inside the Docker container:
 from datetime import datetime, timedelta
 import random
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.db.database import Base
+from app.db.database import Base, engine, SessionLocal
 from app.db.models import (
     School,
     Student,
@@ -295,9 +293,6 @@ def print_summary(db: Session) -> None:
 
 def main():
     print("\n🌱 Starting database seed...\n")
-
-    engine = create_engine(settings.database_url, echo=False)
-    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
     Base.metadata.create_all(bind=engine)
 
