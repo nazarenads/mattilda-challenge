@@ -1,19 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "========================================"
 echo "Starting application..."
-echo "========================================"
-
-# Debug: Print all environment variable NAMES (not values) to see what's available
-echo "Available environment variables:"
-env | cut -d= -f1 | sort
-
-echo "----------------------------------------"
-
-# Debug: Check if DATABASE_URL is set (without revealing the value)
-echo "DATABASE_URL is: ${DATABASE_URL:+SET}"
-echo "DATABASE_URL length: ${#DATABASE_URL}"
 
 if [ -z "$DATABASE_URL" ]; then
     echo "ERROR: DATABASE_URL is not set!"
@@ -48,4 +36,3 @@ alembic upgrade head
 
 echo "Starting uvicorn server on port ${PORT:-8000}..."
 exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
-
